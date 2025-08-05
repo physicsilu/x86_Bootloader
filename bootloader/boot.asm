@@ -1,39 +1,30 @@
-; This is a Stage 1 bootloader. This basically loads another bootloader and does it's stuff.
+[BITS 16]           ; This is a directive that tells the assembler to treat this code as 16-bit code
+[ORG 0x7C00]        ; This is the origin address where the bootloader will be loaded in memory
 
-[org 0x7C00]
-
+; This is the basic set-up.
 start:
-    ; Load second sector (512 bytes) into memory 0x7E00
-    mov ah, 0x02    ; BIOS read sector function
-    mov al, 0x01    ; No of sectors to read
-    mov ch, 0x00    ; cylinder = 0
-    mov cl, 0x02    ; Sector = 2 (boot is in sector 1)
-    mov dh, 0x00    ; Head = 0
-    mov dl, 0x80    ; Drive 0 (floppy) or 0x80 for HDD
-    mov bx, 0x0000  ; ES:BX = destination memory
-    mov es, bx      ; ES is used for string and interrupt operations
-    mov bx, 0x7E00
-    int 0x13        ; BIOS disk interrupt
+    cli             ; Disable interrupts
+    mov ax, 0x0000
+    ; DS, ES and SS are segment registers. We can't directly load address into them. We have to do it via another register.
+    mov ds, ax
+    mov es, ax
+    mov ss, ax
+    mov sp, 0x7C00  ; This is the stack pointer and we point it to 0x7c00 and the stack grows downwards.
+    sti             ; Enable interrupts
+    mov si, msg     ; This basically points to the inintial character of the message if I understand it right.
 
-    jc disk_error   ; Jump if carry flag is set (error)
-
-    jmp 0x0000:0x7E00   ; Jump to stage 2
-
-disk_error:
-    mov si, error_msg
-
-print_error:
-    lodsb
-    or al, al
-    jz hang
+print:
+    lodsb           ; loads byte at DS:SI to AL register and increments SI
+    cmp al, 0       ; This is like our end character. We defined '0' to be that. Now if 0 gets loaded into AL, we are done.
+    je done         ; Jump if equal
     mov ah, 0x0E
     int 0x10
-    jmp print_error
+    jmp print       ; This is an unconditional jump. Basically a loop.
 
-hang:
-    jmp $
+done:
+    cli
+    hlt             ; Stop further CPU execution
+msg: db 'Hello World!', 0
 
-error_msg db "Disk error!", 0
-
-times 510 - ($ - $$) db 0
-dw 0xAA55
+times 510 - ($ - $$) db 0  ; This is basically padding with zeros.
+dw 0xAA55           ; This is the boot signature. No matter what's there in the first 510 bytes, this is what tells the BIOS that it's a bootloader.
