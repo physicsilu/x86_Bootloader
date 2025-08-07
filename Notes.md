@@ -124,3 +124,14 @@ build/boot.img: bootloader/boot.asm bootloader/stage2.asm
   - Concatenate both into boot.img
 
 ``` 🧠 The cat step is important because BIOS reads the disk sector by sector. So sector 1 = boot1.bin, sector 2 = stage2.bin.```
+
+# Switching into Protected Mode
+- Refer this video to understand it: https://youtu.be/Wh5nPn2U_1w?si=5FdzrXBLj7hiu9Ez
+- Access byte is of the form (refer OSDev.org for more info)
+  - P (7): Present Bit
+  - DPL (5-6): Descriptor Privilege Level
+  - S (4): Descriptor type bit
+  - E (3): Executable bit
+  - DC (2): Direction bit {for data segment}/ Conforming bit {for code segment}
+  - RW (1): Read bit {for code segment}/ Write bit {for data segment}
+  - A (0): Accessed bit
